@@ -12,6 +12,7 @@ import (
 	"github.com/devtron-labs/authenticator/middleware"
 	"github.com/devtron-labs/common-lib/cloud-provider-identifier"
 	"github.com/devtron-labs/common-lib/pubsub-lib"
+	"github.com/devtron-labs/common-lib/utils/grpc"
 	"github.com/devtron-labs/common-lib/utils/k8s"
 	apiToken2 "github.com/devtron-labs/devtron/api/apiToken"
 	"github.com/devtron-labs/devtron/api/appStore"
@@ -307,7 +308,11 @@ func InitializeApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	enforcerImpl, err := casbin.NewEnforcerImpl(syncedEnforcer, sessionManager, sugaredLogger)
+	casbinSyncedEnforcer, err := casbin.CreateV2()
+	if err != nil {
+		return nil, err
+	}
+	enforcerImpl, err := casbin.NewEnforcerImpl(syncedEnforcer, casbinSyncedEnforcer, sessionManager, sugaredLogger)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +334,11 @@ func InitializeApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	helmAppClientImpl := gRPC.NewHelmAppClientImpl(sugaredLogger, helmClientConfig)
+	configuration, err := grpc.GetConfiguration()
+	if err != nil {
+		return nil, err
+	}
+	helmAppClientImpl := gRPC.NewHelmAppClientImpl(sugaredLogger, helmClientConfig, configuration)
 	pumpImpl := connector.NewPumpImpl(sugaredLogger)
 	enforcerUtilHelmImpl := rbac.NewEnforcerUtilHelmImpl(sugaredLogger, clusterRepositoryImpl, teamRepositoryImpl, appRepositoryImpl, installedAppRepositoryImpl)
 	serverDataStoreServerDataStore := serverDataStore.InitServerDataStore()
@@ -944,6 +953,6 @@ func InitializeApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	mainApp := NewApp(muxRouter, sugaredLogger, sseSSE, syncedEnforcer, db, sessionManager, posthogClient, loggingMiddlewareImpl, centralEventProcessor, pubSubClientServiceImpl, workflowEventProcessorImpl)
+	mainApp := NewApp(muxRouter, sugaredLogger, sseSSE, syncedEnforcer, db, sessionManager, posthogClient, loggingMiddlewareImpl, centralEventProcessor, pubSubClientServiceImpl, workflowEventProcessorImpl, casbinSyncedEnforcer)
 	return mainApp, nil
 }
