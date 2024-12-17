@@ -143,7 +143,6 @@ import (
 	"github.com/devtron-labs/devtron/pkg/imageDigestPolicy"
 	repository11 "github.com/devtron-labs/devtron/pkg/infraConfig/repository"
 	infraConfigService "github.com/devtron-labs/devtron/pkg/infraConfig/service"
-	"github.com/devtron-labs/devtron/pkg/infraConfig/units"
 	"github.com/devtron-labs/devtron/pkg/kubernetesResourceAuditLogs"
 	repository7 "github.com/devtron-labs/devtron/pkg/kubernetesResourceAuditLogs/repository"
 	"github.com/devtron-labs/devtron/pkg/notifier"
@@ -279,7 +278,6 @@ func InitializeApp() (*App, error) {
 		repository11.NewInfraProfileRepositoryImpl,
 		wire.Bind(new(repository11.InfraConfigRepository), new(*repository11.InfraConfigRepositoryImpl)),
 
-		units.NewUnits,
 		infraConfigService.NewInfraConfigServiceImpl,
 		wire.Bind(new(infraConfigService.InfraConfigService), new(*infraConfigService.InfraConfigServiceImpl)),
 		infraProviders.NewInfraProviderImpl,

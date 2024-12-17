@@ -29,18 +29,18 @@ import (
 )
 
 // GetUnitSuffix loosely typed method to get the unit suffix using the unitKey type
-func GetUnitSuffix(unitKey bean.ConfigKeyStr, unitStr string) units.UnitSuffix {
+func GetUnitSuffix(unitKey bean.ConfigKeyStr, unitStr string) units.UnitType {
 	switch unitKey {
 	case bean.CPU_LIMIT, bean.CPU_REQUEST:
-		return units.CPUUnitStr(unitStr).GetCPUUnit()
+		return units.CPUUnitStr(unitStr).GetUnitSuffix()
 	case bean.MEMORY_LIMIT, bean.MEMORY_REQUEST:
-		return units.MemoryUnitStr(unitStr).GetMemoryUnit()
+		return units.MemoryUnitStr(unitStr).GetUnitSuffix()
 	}
-	return units.TimeUnitStr(unitStr).GetTimeUnit()
+	return units.TimeUnitStr(unitStr).GetUnitSuffix()
 }
 
 // GetUnitSuffixStr loosely typed method to get the unit suffix using the unitKey type
-func GetUnitSuffixStr(unitKey bean.ConfigKey, unit units.UnitSuffix) string {
+func GetUnitSuffixStr(unitKey bean.ConfigKey, unit units.UnitType) string {
 	switch unitKey {
 	case bean.CPULimitKey, bean.CPURequestKey:
 		return string(unit.GetCPUUnitStr())

@@ -74,7 +74,7 @@ func convertValueStringToInterface(configKey bean.ConfigKeyStr, valueString stri
 
 func getConfigurationBean(infraProfileConfiguration *repository.InfraProfileConfigurationEntity, profileName string) (*bean.ConfigurationBean, error) {
 	valueString := infraProfileConfiguration.ValueString
-	//handle old values
+	// handle old values
 	if len(valueString) == 0 && infraProfileConfiguration.Unit > 0 {
 		valueString = strconv.FormatFloat(infraProfileConfiguration.Value, 'f', -1, 64)
 	}
@@ -290,91 +290,49 @@ func ConvertToInfraProfileEntity(profileBean *bean.ProfileBeanDto) *repository.I
 	}
 }
 
-func LoadCiLimitCpu(infraConfig *bean.InfraConfig) (*repository.InfraProfileConfigurationEntity, error) {
-	val, suffix, err := units.ParseValAndUnit(infraConfig.CiLimitCpu)
-	if err != nil {
-		return nil, err
-	}
+func LoadCiLimitCpu(parsedValue *units.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
 	return &repository.InfraProfileConfigurationEntity{
 		Key:         bean.CPULimitKey,
-		ValueString: strconv.FormatFloat(val, 'f', -1, 64),
-		Unit:        units.CPUUnitStr(suffix).GetCPUUnit(),
+		ValueString: strconv.FormatFloat(parsedValue.GetValueFloat(), 'f', -1, 64),
+		Unit:        units.CPUUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
 		Platform:    bean.DEFAULT_PLATFORM,
 	}, nil
 
 }
 
-func LoadInfraConfigInEntities(infraConfig *bean.InfraConfig) ([]*repository.InfraProfileConfigurationEntity, error) {
-	cpuLimit, err := LoadCiLimitCpu(infraConfig)
-	if err != nil {
-		return nil, err
-	}
-	memLimit, err := LoadCiLimitMem(infraConfig)
-	if err != nil {
-		return nil, err
-	}
-	cpuReq, err := LoadCiReqCpu(infraConfig)
-	if err != nil {
-		return nil, err
-	}
-	memReq, err := LoadCiReqMem(infraConfig)
-	if err != nil {
-		return nil, err
-	}
-	timeout, err := LoadDefaultTimeout(infraConfig)
-	if err != nil {
-		return nil, err
-	}
-	defaultConfigurations := []*repository.InfraProfileConfigurationEntity{cpuLimit, memLimit, cpuReq, memReq, timeout}
-	return defaultConfigurations, nil
-}
-
-func LoadDefaultTimeout(infraConfig *bean.InfraConfig) (*repository.InfraProfileConfigurationEntity, error) {
-	return &repository.InfraProfileConfigurationEntity{
-		Key:         bean.TimeOutKey,
-		ValueString: strconv.FormatInt(infraConfig.CiDefaultTimeout, 10),
-		Unit:        units.SecondStr.GetTimeUnit(),
-		Platform:    bean.DEFAULT_PLATFORM,
-	}, nil
-}
-
-func LoadCiReqCpu(infraConfig *bean.InfraConfig) (*repository.InfraProfileConfigurationEntity, error) {
-	val, suffix, err := units.ParseValAndUnit(infraConfig.CiReqCpu)
-	if err != nil {
-		return nil, err
-	}
+func LoadCiReqCpu(parsedValue *units.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
 	return &repository.InfraProfileConfigurationEntity{
 		Key:         bean.CPURequestKey,
-		ValueString: strconv.FormatFloat(val, 'f', -1, 64),
-		Unit:        units.CPUUnitStr(suffix).GetCPUUnit(),
+		ValueString: strconv.FormatFloat(parsedValue.GetValueFloat(), 'f', -1, 64),
+		Unit:        units.CPUUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
 		Platform:    bean.DEFAULT_PLATFORM,
 	}, nil
 }
 
-func LoadCiReqMem(infraConfig *bean.InfraConfig) (*repository.InfraProfileConfigurationEntity, error) {
-	val, suffix, err := units.ParseValAndUnit(infraConfig.CiReqMem)
-	if err != nil {
-		return nil, err
-	}
-
+func LoadCiReqMem(parsedValue *units.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
 	return &repository.InfraProfileConfigurationEntity{
 		Key:         bean.MemoryRequestKey,
-		ValueString: strconv.FormatFloat(val, 'f', -1, 64),
-		Unit:        units.MemoryUnitStr(suffix).GetMemoryUnit(),
+		ValueString: strconv.FormatFloat(parsedValue.GetValueFloat(), 'f', -1, 64),
+		Unit:        units.MemoryUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
 		Platform:    bean.DEFAULT_PLATFORM,
 	}, nil
 }
 
-func LoadCiLimitMem(infraConfig *bean.InfraConfig) (*repository.InfraProfileConfigurationEntity, error) {
-	val, suffix, err := units.ParseValAndUnit(infraConfig.CiLimitMem)
-	if err != nil {
-		return nil, err
-	}
+func LoadCiLimitMem(parsedValue *units.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
 	return &repository.InfraProfileConfigurationEntity{
 		Key:         bean.MemoryLimitKey,
-		ValueString: strconv.FormatFloat(val, 'f', -1, 64),
-		Unit:        units.MemoryUnitStr(suffix).GetMemoryUnit(),
+		ValueString: strconv.FormatFloat(parsedValue.GetValueFloat(), 'f', -1, 64),
+		Unit:        units.MemoryUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
 		Platform:    bean.DEFAULT_PLATFORM,
 	}, nil
 
+}
+
+func LoadDefaultTimeout(parsedValue *units.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
+	return &repository.InfraProfileConfigurationEntity{
+		Key:         bean.TimeOutKey,
+		ValueString: strconv.FormatFloat(parsedValue.GetValueFloat(), 'f', -1, 64),
+		Unit:        units.TimeUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
+		Platform:    bean.DEFAULT_PLATFORM,
+	}, nil
 }

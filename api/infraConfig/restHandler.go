@@ -97,7 +97,12 @@ func (handler *InfraConfigRestHandlerImpl) GetProfile(w http.ResponseWriter, r *
 	resp := bean.ProfileResponse{
 		Profile: *profile,
 	}
-	resp.ConfigurationUnits = handler.infraProfileService.GetConfigurationUnits()
+	resp.ConfigurationUnits, err = handler.infraProfileService.GetConfigurationUnits()
+	if err != nil {
+		handler.logger.Errorw("error in getting configuration units", "err", err)
+		common.WriteJsonResp(w, err, nil, http.StatusInternalServerError)
+		return
+	}
 	//TODO: why below line ??
 	resp.DefaultConfigurations = defaultProfile.Configurations
 	common.WriteJsonResp(w, nil, resp, http.StatusOK)
@@ -189,7 +194,11 @@ func (handler *InfraConfigRestHandlerImpl) GetProfileV0(w http.ResponseWriter, r
 	resp := bean.ProfileResponseV0{
 		Profile: *profile,
 	}
-	resp.ConfigurationUnits = handler.infraProfileService.GetConfigurationUnits()
+	resp.ConfigurationUnits, err = handler.infraProfileService.GetConfigurationUnits()
+	if err != nil {
+		handler.logger.Errorw("error in getting configuration units", "err", err)
+		common.WriteJsonResp(w, err, nil, http.StatusInternalServerError)
+	}
 	resp.DefaultConfigurations = defaultProfileV0.Configurations
 	common.WriteJsonResp(w, nil, resp, http.StatusOK)
 }

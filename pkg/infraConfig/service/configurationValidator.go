@@ -54,15 +54,15 @@ func (impl *InfraConfigServiceImpl) validateInfraConfig(profileBean *bean.Profil
 	}
 	return nil
 }
+
 func (impl *InfraConfigServiceImpl) validateCPU(cpuLimit, cpuReq *bean.ConfigurationBean) error {
 	cpuLimitUnitSuffix := units.CPUUnitStr(cpuLimit.Unit)
 	cpuReqUnitSuffix := units.CPUUnitStr(cpuReq.Unit)
-	cpuUnits := impl.units.GetCpuUnits()
-	cpuLimitUnit, ok := cpuUnits[cpuLimitUnitSuffix]
+	cpuLimitUnit, ok := cpuLimitUnitSuffix.GetUnit()
 	if !ok {
 		return errors.New(fmt.Sprintf(bean.InvalidUnit, cpuLimit.Unit, cpuLimit.Key))
 	}
-	cpuReqUnit, ok := cpuUnits[cpuReqUnitSuffix]
+	cpuReqUnit, ok := cpuReqUnitSuffix.GetUnit()
 	if !ok {
 		return errors.New(fmt.Sprintf(bean.InvalidUnit, cpuReq.Unit, cpuReq.Key))
 	}
@@ -89,13 +89,13 @@ func (impl *InfraConfigServiceImpl) validateCPU(cpuLimit, cpuReq *bean.Configura
 	}
 	return nil
 }
+
 func (impl *InfraConfigServiceImpl) validateTimeOut(timeOut *bean.ConfigurationBean) error {
 	if timeOut == nil {
 		return nil
 	}
 	timeoutUnitSuffix := units.TimeUnitStr(timeOut.Unit)
-	timeUnits := impl.units.GetTimeUnits()
-	_, ok := timeUnits[timeoutUnitSuffix]
+	_, ok := timeoutUnitSuffix.GetUnit()
 	if !ok {
 		return errors.New(fmt.Sprintf(bean.InvalidUnit, timeOut.Unit, timeOut.Key))
 	}
@@ -109,15 +109,15 @@ func (impl *InfraConfigServiceImpl) validateTimeOut(timeOut *bean.ConfigurationB
 	}
 	return nil
 }
+
 func (impl *InfraConfigServiceImpl) validateMEM(memLimit, memReq *bean.ConfigurationBean) error {
 	memLimitUnitSuffix := units.MemoryUnitStr(memLimit.Unit)
 	memReqUnitSuffix := units.MemoryUnitStr(memReq.Unit)
-	memUnits := impl.units.GetMemoryUnits()
-	memLimitUnit, ok := memUnits[memLimitUnitSuffix]
+	memLimitUnit, ok := memLimitUnitSuffix.GetUnit()
 	if !ok {
 		return errors.New(fmt.Sprintf(bean.InvalidUnit, memLimit.Unit, memLimit.Key))
 	}
-	memReqUnit, ok := memUnits[memReqUnitSuffix]
+	memReqUnit, ok := memReqUnitSuffix.GetUnit()
 	if !ok {
 		return errors.New(fmt.Sprintf(bean.InvalidUnit, memReq.Unit, memReq.Key))
 	}
@@ -147,6 +147,7 @@ func (impl *InfraConfigServiceImpl) validateMEM(memLimit, memReq *bean.Configura
 	}
 	return nil
 }
+
 func validLimReq(lim, limFactor, req, reqFactor float64) bool {
 	// this condition should be true for valid case => (lim/req)*(lf/rf) >= 1
 	limitToReqRatio := lim / req

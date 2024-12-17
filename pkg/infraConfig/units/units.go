@@ -17,323 +17,110 @@
 package units
 
 import (
+	"fmt"
+	util2 "github.com/devtron-labs/devtron/internal/util"
 	"github.com/devtron-labs/devtron/util"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"net/http"
 	"strconv"
 	"strings"
-)
-
-// memory units
-// Ei, Pi, Ti, Gi, Mi, Ki
-// E, P, T, G, M, k, m
-
-type UnitSuffix int
-
-const (
-	Byte      UnitSuffix = 1
-	KiByte    UnitSuffix = 2 // 1024
-	MiByte    UnitSuffix = 3
-	GiByte    UnitSuffix = 4
-	TiByte    UnitSuffix = 5
-	PiByte    UnitSuffix = 6
-	EiByte    UnitSuffix = 7
-	K         UnitSuffix = 8 // 1000
-	M         UnitSuffix = 9
-	G         UnitSuffix = 10
-	T         UnitSuffix = 11
-	P         UnitSuffix = 12
-	E         UnitSuffix = 13
-	Core      UnitSuffix = 14 // CPU cores
-	Milli     UnitSuffix = 15
-	Second    UnitSuffix = 16
-	Minute    UnitSuffix = 17
-	Hour      UnitSuffix = 18
-	MilliByte UnitSuffix = 19
 )
 
 type UnitStr interface {
 	CPUUnitStr | MemoryUnitStr | TimeUnitStr
 }
 
-type CPUUnitStr string
-
-func (cpuUnit UnitSuffix) GetCPUUnitStr() CPUUnitStr {
-	switch cpuUnit {
-	case Core:
-		return CORE
-	case Milli:
-		return MILLI
-	default:
-		return CORE
-	}
-}
-
-func (cpuUnitStr CPUUnitStr) GetCPUUnit() UnitSuffix {
-	switch cpuUnitStr {
-	case CORE:
-		return Core
-	case MILLI:
-		return Milli
-	default:
-		return Core
-	}
-}
-
-const (
-	CORE  CPUUnitStr = "Core"
-	MILLI CPUUnitStr = "m"
-)
-
-type MemoryUnitStr string
-
-const (
-	MILLIBYTE MemoryUnitStr = "m"
-	BYTE      MemoryUnitStr = "byte"
-	KIBYTE    MemoryUnitStr = "Ki"
-	MIBYTE    MemoryUnitStr = "Mi"
-	GIBYTE    MemoryUnitStr = "Gi"
-	TIBYTE    MemoryUnitStr = "Ti"
-	PIBYTE    MemoryUnitStr = "Pi"
-	EIBYTE    MemoryUnitStr = "Ei"
-	KBYTE     MemoryUnitStr = "k"
-	MBYTE     MemoryUnitStr = "M"
-	GBYTE     MemoryUnitStr = "G"
-	TBYTE     MemoryUnitStr = "T"
-	PBYTE     MemoryUnitStr = "P"
-	EBYTE     MemoryUnitStr = "E"
-)
-
-func (memoryUnit UnitSuffix) GetMemoryUnitStr() MemoryUnitStr {
-	switch memoryUnit {
-	case MilliByte:
-		return MILLIBYTE
-	case Byte:
-		return BYTE
-	case KiByte:
-		return KIBYTE
-	case MiByte:
-		return MIBYTE
-	case GiByte:
-		return GIBYTE
-	case TiByte:
-		return TIBYTE
-	case PiByte:
-		return PIBYTE
-	case EiByte:
-		return EIBYTE
-	case K:
-		return KBYTE
-	case M:
-		return MBYTE
-	case G:
-		return GBYTE
-	case T:
-		return TBYTE
-	case P:
-		return PBYTE
-	case E:
-		return EBYTE
-	default:
-		return BYTE
-	}
-}
-
-func (memoryUnitStr MemoryUnitStr) GetMemoryUnit() UnitSuffix {
-	switch memoryUnitStr {
-	case BYTE:
-		return Byte
-	case KIBYTE:
-		return KiByte
-	case MIBYTE:
-		return MiByte
-	case GIBYTE:
-		return GiByte
-	case TIBYTE:
-		return TiByte
-	case PIBYTE:
-		return PiByte
-	case EIBYTE:
-		return EiByte
-	case KBYTE:
-		return K
-	case MBYTE:
-		return M
-	case GBYTE:
-		return G
-	case TBYTE:
-		return T
-	case PBYTE:
-		return P
-	case EBYTE:
-		return E
-	default:
-		return Byte
-	}
-}
-
-type TimeUnitStr string
-
-const (
-	SecondStr TimeUnitStr = "Seconds"
-	MinuteStr TimeUnitStr = "Minutes"
-	HourStr   TimeUnitStr = "Hours"
-)
-
-func (timeUnit UnitSuffix) GetTimeUnitStr() TimeUnitStr {
-	switch timeUnit {
-	case Second:
-		return SecondStr
-	case Minute:
-		return MinuteStr
-	case Hour:
-		return HourStr
-	default:
-		return SecondStr
-	}
-}
-
-func (timeUnitStr TimeUnitStr) GetTimeUnit() UnitSuffix {
-	switch timeUnitStr {
-	case SecondStr:
-		return Second
-	case MinuteStr:
-		return Minute
-	case HourStr:
-		return Hour
-	default:
-		return Second
-	}
-}
-
-type Units struct {
-	cpuUnits    map[CPUUnitStr]Unit
-	memoryUnits map[MemoryUnitStr]Unit
-	timeUnits   map[TimeUnitStr]Unit
-}
-
-func NewUnits() *Units {
-	cpuUnits := map[CPUUnitStr]Unit{
-		MILLI: {
-			Name:             string(MILLI),
-			ConversionFactor: 1e-3,
-		},
-		CORE: {
-			Name:             string(CORE),
-			ConversionFactor: 1,
-		},
-	}
-
-	memoryUnits := map[MemoryUnitStr]Unit{
-		MILLIBYTE: {
-			Name:             string(MILLIBYTE),
-			ConversionFactor: 1e-3,
-		},
-		BYTE: {
-			Name:             string(BYTE),
-			ConversionFactor: 1,
-		},
-		KBYTE: {
-			Name:             string(KBYTE),
-			ConversionFactor: 1000,
-		},
-		MBYTE: {
-			Name:             string(MBYTE),
-			ConversionFactor: 1000000,
-		},
-		GBYTE: {
-			Name:             string(GBYTE),
-			ConversionFactor: 1000000000,
-		},
-		TBYTE: {
-			Name:             string(TBYTE),
-			ConversionFactor: 1000000000000,
-		},
-		PBYTE: {
-			Name:             string(PBYTE),
-			ConversionFactor: 1000000000000000,
-		},
-		EBYTE: {
-			Name:             string(EBYTE),
-			ConversionFactor: 1000000000000000000,
-		},
-		KIBYTE: {
-			Name:             string(KIBYTE),
-			ConversionFactor: 1024,
-		},
-		MIBYTE: {
-			Name:             string(MIBYTE),
-			ConversionFactor: 1024 * 1024,
-		},
-		GIBYTE: {
-			Name:             string(GIBYTE),
-			ConversionFactor: 1024 * 1024 * 1024,
-		},
-		TIBYTE: {
-			Name:             string(TIBYTE),
-			ConversionFactor: 1024 * 1024 * 1024 * 1024,
-		},
-		PIBYTE: {
-			Name:             string(PIBYTE),
-			ConversionFactor: 1024 * 1024 * 1024 * 1024 * 1024,
-		},
-		EIBYTE: {
-			Name:             string(EIBYTE),
-			ConversionFactor: 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
-		},
-	}
-
-	timeUnits := map[TimeUnitStr]Unit{
-		SecondStr: {
-			Name:             string(SecondStr),
-			ConversionFactor: 1,
-		},
-		MinuteStr: {
-			Name:             string(MinuteStr),
-			ConversionFactor: 60,
-		},
-		HourStr: {
-			Name:             string(HourStr),
-			ConversionFactor: 3600,
-		},
-	}
-	return &Units{
-		cpuUnits:    cpuUnits,
-		memoryUnits: memoryUnits,
-		timeUnits:   timeUnits,
-	}
-}
-
-func (u *Units) GetCpuUnits() map[CPUUnitStr]Unit {
-	return u.cpuUnits
-}
-
-func (u *Units) GetMemoryUnits() map[MemoryUnitStr]Unit {
-	return u.memoryUnits
-}
-
-func (u *Units) GetTimeUnits() map[TimeUnitStr]Unit {
-	return u.timeUnits
-}
-
-// Unit represents unit of a configuration
+// Unit represents unitType of a configuration
 type Unit struct {
-	// Name is unit name
+	// Name is unitType name
 	Name string `json:"name"`
-	// ConversionFactor is used to convert this unit to the base unit
-	// if ConversionFactor is 1, then this is the base unit
+	// ConversionFactor is used to convert this unitType to the base unitType
+	// if ConversionFactor is 1, then this is the base unitType
 	ConversionFactor float64 `json:"conversionFactor"`
 }
 
-// ParseValAndUnit parses the quantity which have number values string and returns the value and unit
+type UnitStrService interface {
+	GetUnitSuffix() UnitType
+	GetUnit() (Unit, bool)
+	String() string
+}
+
+type PropertyType string
+
+const (
+	CPU    PropertyType = "CPU"
+	MEMORY PropertyType = "MEMORY"
+	TIME   PropertyType = "TIME"
+)
+
+type UnitService interface {
+	GetAllUnits() map[string]Unit
+	ParseValAndUnit(val string) (*ParsedValue, error)
+}
+
+func NewUnitService(propertyType PropertyType, logger *zap.SugaredLogger) (UnitService, error) {
+	switch propertyType {
+	case CPU:
+		return NewCPUUnitFactory(logger), nil
+	case MEMORY:
+		return NewMemoryUnitFactory(logger), nil
+	case TIME:
+		return NewTimeUnitFactory(logger), nil
+	default:
+		errMsg := fmt.Sprintf("invalid property type '%s'", propertyType)
+		return nil, util2.NewApiError(http.StatusBadRequest, errMsg, errMsg)
+	}
+}
+
+type ParsedValue struct {
+	valueFloat  float64
+	valueString string
+	unitType    string
+}
+
+func NewParsedValue() *ParsedValue {
+	return &ParsedValue{}
+}
+
+func (p *ParsedValue) WithValueFloat(value float64) *ParsedValue {
+	p.valueFloat = value
+	return p
+}
+
+func (p *ParsedValue) WithValueString(value string) *ParsedValue {
+	p.valueString = value
+	return p
+}
+
+func (p *ParsedValue) WithUnit(unit string) *ParsedValue {
+	p.unitType = unit
+	return p
+}
+
+func (p *ParsedValue) GetValueFloat() float64 {
+	return p.valueFloat
+}
+
+func (p *ParsedValue) GetValueString() string {
+	return p.valueString
+}
+
+func (p *ParsedValue) GetUnitType() string {
+	return p.unitType
+}
+
+// ParseCPUorMemoryValue parses the quantity that has number values string and returns the value and unitType
 // returns error if parsing fails
-func ParseValAndUnit(quantity string) (float64, string, error) {
-	positive, _, num, denom, suffix, err := ParseQuantityString(quantity)
+func ParseCPUorMemoryValue(quantity string) (*ParsedValue, error) {
+	parsedValue := NewParsedValue()
+	positive, _, num, denom, suffix, err := parseQuantityString(quantity)
 	if err != nil {
-		return 0, "", err
+		return parsedValue, err
 	}
 	if !positive {
-		return 0, "", errors.New("negative value not allowed for cpu limits")
+		return parsedValue, errors.New("negative value not allowed for cpu limits")
 	}
 	valStr := num
 	if denom != "" {
@@ -344,12 +131,12 @@ func ParseValAndUnit(quantity string) (float64, string, error) {
 
 	// currently we are not supporting exponential values upto 2 decimals
 	val = util.TruncateFloat(val, 2)
-	return val, suffix, err
+	return parsedValue.WithValueFloat(val).WithUnit(suffix), err
 }
 
-// ParseQuantityString is a fast scanner for quantity values.
+// parseQuantityString is a fast scanner for quantity values.
 // this parsing is only for cpu and mem resources
-func ParseQuantityString(str string) (positive bool, value, num, denom, suffix string, err error) {
+func parseQuantityString(str string) (positive bool, value, num, denom, suffix string, err error) {
 	positive = true
 	pos := 0
 	end := len(str)

@@ -33,15 +33,16 @@ type InfraProfileEntity struct {
 	sql.AuditLog
 }
 type InfraProfileConfigurationEntity struct {
-	tableName   struct{}         `sql:"infra_profile_configuration" pg:",discard_unknown_columns"`
-	Id          int              `sql:"id"`
-	Key         bean.ConfigKey   `sql:"key"`
-	Value       float64          `sql:"value"`
-	ValueString string           `sql:"value_string"`
-	Unit        units.UnitSuffix `sql:"unit"`
-	ProfileId   int              `sql:"profile_id"`
-	Platform    string           `sql:"platform"`
-	Active      bool             `sql:"active"`
+	tableName struct{}       `sql:"infra_profile_configuration" pg:",discard_unknown_columns"`
+	Id        int            `sql:"id"`
+	Key       bean.ConfigKey `sql:"key"`
+	// Deprecated; use ValueString instead
+	Value       float64        `sql:"value"`
+	ValueString string         `sql:"value_string"`
+	Unit        units.UnitType `sql:"unit"`
+	ProfileId   int            `sql:"profile_id"`
+	Platform    string         `sql:"platform"`
+	Active      bool           `sql:"active"`
 	sql.AuditLog
 }
 
