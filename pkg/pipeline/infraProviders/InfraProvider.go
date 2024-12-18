@@ -36,12 +36,13 @@ type InfraProviderImpl struct {
 	jobInfraGetter infraGetters.InfraGetter
 }
 
-func NewInfraProviderImpl(logger *zap.SugaredLogger, service service.InfraConfigService) *InfraProviderImpl {
+func NewInfraProviderImpl(logger *zap.SugaredLogger, service service.InfraConfigService) (*InfraProviderImpl, error) {
+	jobInfraGetter, err := job.NewJobInfraGetter()
 	return &InfraProviderImpl{
 		logger:         logger,
 		ciInfraGetter:  ciPipeline.NewCiInfraGetter(service),
-		jobInfraGetter: job.NewJobInfraGetter(),
-	}
+		jobInfraGetter: jobInfraGetter,
+	}, err
 }
 
 func (infraProvider *InfraProviderImpl) GetInfraProvider(providerType bean.WorkflowPipelineType) (infraGetters.InfraGetter, error) {

@@ -26,15 +26,15 @@ type JobInfraGetter struct {
 	jobInfra bean.InfraConfig
 }
 
-func NewJobInfraGetter() *JobInfraGetter {
+func NewJobInfraGetter() (*JobInfraGetter, error) {
 	infra := bean.InfraConfig{}
-	env.Parse(&infra)
+	err := env.Parse(&infra)
 	return &JobInfraGetter{
 		jobInfra: infra,
-	}
+	}, err
 }
 
-// GetInfraConfigurationsByScope gets infra config for ci workflows using the scope
+// GetInfraConfigurationsByScopeAndPlatform gets infra config for ci workflows using the scope
 func (jobInfraGetter JobInfraGetter) GetInfraConfigurationsByScopeAndPlatform(scope *bean.Scope, platform string) (*bean.InfraConfig, error) {
 	infra := jobInfraGetter.jobInfra
 	return &infra, nil

@@ -46,6 +46,7 @@ type InfraConfigService interface {
 	// If profileName is empty, it will return an error.
 	UpdateProfile(userId int32, profileName string, profileBean *bean.ProfileBeanDto) error
 
+	// GetInfraConfigurationsByScopeAndPlatform fetches the infra configurations for the given scope and platform.
 	GetInfraConfigurationsByScopeAndPlatform(scope bean.Scope, platform string) (*bean.InfraConfig, error)
 }
 
@@ -284,24 +285,25 @@ func (impl *InfraConfigServiceImpl) loadDefaultProfile() error {
 }
 
 func (impl *InfraConfigServiceImpl) GetInfraConfigurationsByScopeAndPlatform(scope bean.Scope, platform string) (*bean.InfraConfig, error) {
-
-	defaultConfigurations, err := impl.infraProfileRepo.GetConfigurationsByProfileName(bean.GLOBAL_PROFILE_NAME)
+	defaultConfigurationsDB, err := impl.infraProfileRepo.GetConfigurationsByProfileName(bean.GLOBAL_PROFILE_NAME)
 	if err != nil {
 		impl.logger.Errorw("error in fetching default configurations", "scope", scope, "error", err)
 		return nil, err
 	}
-
-	defaultConfigurationsMap, err := adapter.ConvertToPlatformMap(defaultConfigurations, bean.GLOBAL_PROFILE_NAME)
+	defaultConfigurationBeansMap, err := adapter.ConvertToPlatformMap(defaultConfigurationsDB, bean.GLOBAL_PROFILE_NAME)
 	if err != nil {
-		impl.logger.Errorw("error in fetching default configurations", "scope", scope, "error", err)
+		impl.logger.Errorw("error in converting default configurations into platform map", "defaultConfigurationsDB", defaultConfigurationsDB, "error", err)
 		return nil, err
 	}
-	platformConfigurationBean := defaultConfigurationsMap[platform]
-	if platformConfigurationBean == nil {
+	if platformConfigurationBean, ok := defaultConfigurationBeansMap[platform]; !ok {
+		impl.logger.Debugw("platform not found in default configurations", "platform", platform)
+		return &bean.InfraConfig{}, nil
+	} else if platformConfigurationBean != nil {
+		return impl.getInfraConfigForConfigBean(platformConfigurationBean)
+	} else {
+		impl.logger.Debugw("platform found with null configurations", "platform", platform)
 		return &bean.InfraConfig{}, nil
 	}
-
-	return impl.getInfraConfigForConfigBean(platformConfigurationBean)
 }
 
 func (impl *InfraConfigServiceImpl) getInfraConfigForConfigBean(platformConfigurationBean []*bean.ConfigurationBean) (infraConfiguration *bean.InfraConfig, err error) {

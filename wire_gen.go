@@ -563,7 +563,10 @@ func InitializeApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	infraProviderImpl := infraProviders.NewInfraProviderImpl(sugaredLogger, infraConfigServiceImpl)
+	infraProviderImpl, err := infraProviders.NewInfraProviderImpl(sugaredLogger, infraConfigServiceImpl)
+	if err != nil {
+		return nil, err
+	}
 	workflowServiceImpl, err := pipeline.NewWorkflowServiceImpl(sugaredLogger, environmentRepositoryImpl, ciCdConfig, appServiceImpl, globalCMCSServiceImpl, argoWorkflowExecutorImpl, k8sServiceImpl, systemWorkflowExecutorImpl, k8sCommonServiceImpl, infraProviderImpl)
 	if err != nil {
 		return nil, err
