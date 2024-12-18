@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"github.com/devtron-labs/devtron/pkg/infraConfig/bean"
 	"github.com/devtron-labs/devtron/pkg/infraConfig/repository"
-	"github.com/devtron-labs/devtron/pkg/infraConfig/units"
+	unitsBean "github.com/devtron-labs/devtron/pkg/infraConfig/units/bean"
 	"github.com/devtron-labs/devtron/pkg/infraConfig/util"
 	"github.com/devtron-labs/devtron/pkg/sql"
-	util2 "github.com/devtron-labs/devtron/util"
+	globalUtil "github.com/devtron-labs/devtron/util"
 	"math"
+	"reflect"
 	"strconv"
 )
 
@@ -56,7 +57,7 @@ func convertValueStringToInterface(configKey bean.ConfigKeyStr, valueString stri
 	case bean.CPU_LIMIT, bean.CPU_REQUEST, bean.MEMORY_LIMIT, bean.MEMORY_REQUEST:
 		// Convert string to float64 and truncate to 2 decimal places
 		valueFloat, err := strconv.ParseFloat(valueString, 64)
-		truncateValue := util2.TruncateFloat(valueFloat, 2)
+		truncateValue := globalUtil.TruncateFloat(valueFloat, 2)
 		return truncateValue, err // Returning float64 for resource values
 	case bean.TIME_OUT:
 		// Convert string to float64 and ensure it's within integer range
@@ -128,7 +129,7 @@ func FormatTypedValueAsString(configKey bean.ConfigKeyStr, configValue interface
 			valueFloat = v
 		}
 		// Truncate and format the float value
-		truncateValue := util2.TruncateFloat(valueFloat, 2)
+		truncateValue := globalUtil.TruncateFloat(valueFloat, 2)
 		return strconv.FormatFloat(truncateValue, 'f', -1, 64)
 		//valueFloat, _ := strconv.ParseFloat(configValue.(float64), 64)
 	}
@@ -290,49 +291,84 @@ func ConvertToInfraProfileEntity(profileBean *bean.ProfileBeanDto) *repository.I
 	}
 }
 
-func LoadCiLimitCpu(parsedValue *units.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
+func LoadCiLimitCpu(parsedValue *unitsBean.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
 	return &repository.InfraProfileConfigurationEntity{
 		Key:         bean.CPULimitKey,
-		ValueString: strconv.FormatFloat(parsedValue.GetValueFloat(), 'f', -1, 64),
-		Unit:        units.CPUUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
+		ValueString: parsedValue.GetValueString(),
+		Unit:        unitsBean.CPUUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
 		Platform:    bean.DEFAULT_PLATFORM,
 	}, nil
 
 }
 
-func LoadCiReqCpu(parsedValue *units.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
+func LoadCiReqCpu(parsedValue *unitsBean.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
 	return &repository.InfraProfileConfigurationEntity{
 		Key:         bean.CPURequestKey,
-		ValueString: strconv.FormatFloat(parsedValue.GetValueFloat(), 'f', -1, 64),
-		Unit:        units.CPUUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
+		ValueString: parsedValue.GetValueString(),
+		Unit:        unitsBean.CPUUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
 		Platform:    bean.DEFAULT_PLATFORM,
 	}, nil
 }
 
-func LoadCiReqMem(parsedValue *units.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
+func LoadCiReqMem(parsedValue *unitsBean.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
 	return &repository.InfraProfileConfigurationEntity{
 		Key:         bean.MemoryRequestKey,
-		ValueString: strconv.FormatFloat(parsedValue.GetValueFloat(), 'f', -1, 64),
-		Unit:        units.MemoryUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
+		ValueString: parsedValue.GetValueString(),
+		Unit:        unitsBean.MemoryUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
 		Platform:    bean.DEFAULT_PLATFORM,
 	}, nil
 }
 
-func LoadCiLimitMem(parsedValue *units.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
+func LoadCiLimitMem(parsedValue *unitsBean.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
 	return &repository.InfraProfileConfigurationEntity{
 		Key:         bean.MemoryLimitKey,
-		ValueString: strconv.FormatFloat(parsedValue.GetValueFloat(), 'f', -1, 64),
-		Unit:        units.MemoryUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
+		ValueString: parsedValue.GetValueString(),
+		Unit:        unitsBean.MemoryUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
 		Platform:    bean.DEFAULT_PLATFORM,
 	}, nil
 
 }
 
-func LoadDefaultTimeout(parsedValue *units.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
+func LoadDefaultTimeout(parsedValue *unitsBean.ParsedValue) (*repository.InfraProfileConfigurationEntity, error) {
 	return &repository.InfraProfileConfigurationEntity{
 		Key:         bean.TimeOutKey,
-		ValueString: strconv.FormatFloat(parsedValue.GetValueFloat(), 'f', -1, 64),
-		Unit:        units.TimeUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
+		ValueString: parsedValue.GetValueString(),
+		Unit:        unitsBean.TimeUnitStr(parsedValue.GetUnitType()).GetUnitSuffix(),
 		Platform:    bean.DEFAULT_PLATFORM,
 	}, nil
+}
+
+func GetTypedValue(configKey bean.ConfigKeyStr, value interface{}) (interface{}, error) {
+	switch configKey {
+	case bean.CPU_LIMIT, bean.CPU_REQUEST, bean.MEMORY_LIMIT, bean.MEMORY_REQUEST:
+		//value is float64 or convertible to it
+		switch v := value.(type) {
+		case string:
+			valueFloat, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse string to float for %s: %w", configKey, err)
+			}
+			return globalUtil.TruncateFloat(valueFloat, 2), nil
+		case float64:
+			return globalUtil.TruncateFloat(v, 2), nil
+		default:
+			return nil, fmt.Errorf("unsupported type for %s: %v", configKey, reflect.TypeOf(value))
+		}
+	case bean.TIME_OUT:
+		switch v := value.(type) {
+		case string:
+			valueFloat, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse string to float for %s: %w", configKey, err)
+			}
+			return math.Min(math.Floor(valueFloat), math.MaxInt64), nil
+		case float64:
+			return math.Min(math.Floor(v), math.MaxInt64), nil
+		default:
+			return nil, fmt.Errorf("unsupported type for %s: %v", configKey, reflect.TypeOf(value))
+		}
+	// Default case
+	default:
+		return nil, fmt.Errorf("unsupported config key: %s", configKey)
+	}
 }

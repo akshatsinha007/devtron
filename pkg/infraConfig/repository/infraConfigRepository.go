@@ -18,7 +18,7 @@ package repository
 
 import (
 	"github.com/devtron-labs/devtron/pkg/infraConfig/bean"
-	"github.com/devtron-labs/devtron/pkg/infraConfig/units"
+	unitsBean "github.com/devtron-labs/devtron/pkg/infraConfig/units/bean"
 	"github.com/devtron-labs/devtron/pkg/sql"
 	"github.com/go-pg/pg"
 	"github.com/pkg/errors"
@@ -37,12 +37,12 @@ type InfraProfileConfigurationEntity struct {
 	Id        int            `sql:"id"`
 	Key       bean.ConfigKey `sql:"key"`
 	// Deprecated; use ValueString instead
-	Value       float64        `sql:"value"`
-	ValueString string         `sql:"value_string"`
-	Unit        units.UnitType `sql:"unit"`
-	ProfileId   int            `sql:"profile_id"`
-	Platform    string         `sql:"platform"`
-	Active      bool           `sql:"active"`
+	Value       float64            `sql:"value"`
+	ValueString string             `sql:"value_string"`
+	Unit        unitsBean.UnitType `sql:"unit"`
+	ProfileId   int                `sql:"profile_id"`
+	Platform    string             `sql:"platform"`
+	Active      bool               `sql:"active"`
 	sql.AuditLog
 }
 

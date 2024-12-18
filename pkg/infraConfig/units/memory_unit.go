@@ -17,153 +17,99 @@
 package units
 
 import (
+	"errors"
+	"fmt"
+	"github.com/devtron-labs/devtron/pkg/infraConfig/adapter"
+	"github.com/devtron-labs/devtron/pkg/infraConfig/bean"
+	bean2 "github.com/devtron-labs/devtron/pkg/infraConfig/units/bean"
 	"go.uber.org/zap"
 )
 
 type MemoryUnitFactory struct {
 	logger      *zap.SugaredLogger
-	memoryUnits map[MemoryUnitStr]Unit
+	memoryUnits map[bean2.MemoryUnitStr]bean.Unit
 }
 
 func NewMemoryUnitFactory(logger *zap.SugaredLogger) *MemoryUnitFactory {
 	return &MemoryUnitFactory{
 		logger:      logger,
-		memoryUnits: getMemoryUnit(),
+		memoryUnits: bean2.GetMemoryUnit(),
 	}
 }
 
-func (m *MemoryUnitFactory) GetAllUnits() map[string]Unit {
+func (m *MemoryUnitFactory) GetAllUnits() map[string]bean.Unit {
 	memoryUnits := m.memoryUnits
-	units := make(map[string]Unit)
+	units := make(map[string]bean.Unit)
 	for key, value := range memoryUnits {
 		units[string(key)] = value
 	}
 	return units
 }
 
-func (m *MemoryUnitFactory) ParseValAndUnit(val string) (*ParsedValue, error) {
+func (m *MemoryUnitFactory) ParseValAndUnit(val string) (*bean2.ParsedValue, error) {
 	return ParseCPUorMemoryValue(val)
 }
 
-type MemoryUnitStr string
+func (m *MemoryUnitFactory) Validate(profileBean, defaultProfile *bean.ProfileBeanDto) error {
+	// currently validating cpu and memory limits and reqs only
+	var (
+		memLimit *bean.ConfigurationBean
+		memReq   *bean.ConfigurationBean
+	)
 
-const (
-	MILLIBYTE MemoryUnitStr = "m"
-	BYTE      MemoryUnitStr = "byte"
-	KIBYTE    MemoryUnitStr = "Ki"
-	MIBYTE    MemoryUnitStr = "Mi"
-	GIBYTE    MemoryUnitStr = "Gi"
-	TIBYTE    MemoryUnitStr = "Ti"
-	PIBYTE    MemoryUnitStr = "Pi"
-	EIBYTE    MemoryUnitStr = "Ei"
-	KBYTE     MemoryUnitStr = "k"
-	MBYTE     MemoryUnitStr = "M"
-	GBYTE     MemoryUnitStr = "G"
-	TBYTE     MemoryUnitStr = "T"
-	PBYTE     MemoryUnitStr = "P"
-	EBYTE     MemoryUnitStr = "E"
-)
-
-func (memoryUnitStr MemoryUnitStr) GetUnitSuffix() UnitType {
-	switch memoryUnitStr {
-	case BYTE:
-		return Byte
-	case KIBYTE:
-		return KiByte
-	case MIBYTE:
-		return MiByte
-	case GIBYTE:
-		return GiByte
-	case TIBYTE:
-		return TiByte
-	case PIBYTE:
-		return PiByte
-	case EIBYTE:
-		return EiByte
-	case KBYTE:
-		return K
-	case MBYTE:
-		return M
-	case GBYTE:
-		return G
-	case TBYTE:
-		return T
-	case PBYTE:
-		return P
-	case EBYTE:
-		return E
-	default:
-		return Byte
+	for _, platformConfigurations := range profileBean.Configurations {
+		for _, configuration := range platformConfigurations {
+			// get cpu limit and req
+			switch configuration.Key {
+			case bean.MEMORY_LIMIT:
+				memLimit = configuration
+			case bean.MEMORY_REQUEST:
+				memReq = configuration
+			}
+		}
 	}
-}
-
-func (memoryUnitStr MemoryUnitStr) GetUnit() (Unit, bool) {
-	memoryUnits := getMemoryUnit()
-	memoryUnit, exists := memoryUnits[memoryUnitStr]
-	return memoryUnit, exists
-}
-
-func (memoryUnitStr MemoryUnitStr) String() string {
-	return string(memoryUnitStr)
-}
-
-func getMemoryUnit() map[MemoryUnitStr]Unit {
-	return map[MemoryUnitStr]Unit{
-		MILLIBYTE: {
-			Name:             string(MILLIBYTE),
-			ConversionFactor: 1e-3,
-		},
-		BYTE: {
-			Name:             string(BYTE),
-			ConversionFactor: 1,
-		},
-		KBYTE: {
-			Name:             string(KBYTE),
-			ConversionFactor: 1000,
-		},
-		MBYTE: {
-			Name:             string(MBYTE),
-			ConversionFactor: 1000000,
-		},
-		GBYTE: {
-			Name:             string(GBYTE),
-			ConversionFactor: 1000000000,
-		},
-		TBYTE: {
-			Name:             string(TBYTE),
-			ConversionFactor: 1000000000000,
-		},
-		PBYTE: {
-			Name:             string(PBYTE),
-			ConversionFactor: 1000000000000000,
-		},
-		EBYTE: {
-			Name:             string(EBYTE),
-			ConversionFactor: 1000000000000000000,
-		},
-		KIBYTE: {
-			Name:             string(KIBYTE),
-			ConversionFactor: 1024,
-		},
-		MIBYTE: {
-			Name:             string(MIBYTE),
-			ConversionFactor: 1024 * 1024,
-		},
-		GIBYTE: {
-			Name:             string(GIBYTE),
-			ConversionFactor: 1024 * 1024 * 1024,
-		},
-		TIBYTE: {
-			Name:             string(TIBYTE),
-			ConversionFactor: 1024 * 1024 * 1024 * 1024,
-		},
-		PIBYTE: {
-			Name:             string(PIBYTE),
-			ConversionFactor: 1024 * 1024 * 1024 * 1024 * 1024,
-		},
-		EIBYTE: {
-			Name:             string(EIBYTE),
-			ConversionFactor: 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
-		},
+	// validate mem
+	err := validateMEM(memLimit, memReq)
+	if err != nil {
+		return err
 	}
+	return nil
+}
+
+func validateMEM(memLimit, memReq *bean.ConfigurationBean) error {
+	memLimitUnitSuffix := bean2.MemoryUnitStr(memLimit.Unit)
+	memReqUnitSuffix := bean2.MemoryUnitStr(memReq.Unit)
+	memLimitUnit, ok := memLimitUnitSuffix.GetUnit()
+	if !ok {
+		return errors.New(fmt.Sprintf(bean.InvalidUnit, memLimit.Unit, memLimit.Key))
+	}
+	memReqUnit, ok := memReqUnitSuffix.GetUnit()
+	if !ok {
+		return errors.New(fmt.Sprintf(bean.InvalidUnit, memReq.Unit, memReq.Key))
+	}
+
+	// Use getTypedValue to retrieve appropriate types
+	memLimitInterfaceVal, err := adapter.GetTypedValue(memLimit.Key, memLimit.Value)
+	if err != nil {
+		return errors.New(fmt.Sprintf(bean.InvalidTypeValue, memLimit.Key, memLimit.Value))
+	}
+	memLimitVal, ok := memLimitInterfaceVal.(float64)
+	if !ok {
+		return errors.New(fmt.Sprintf(bean.InvalidTypeValue, memLimit.Key, memLimit.Value))
+	}
+
+	memReqInterfaceVal, err := adapter.GetTypedValue(memReq.Key, memReq.Value)
+	if err != nil {
+		return errors.New(fmt.Sprintf(bean.InvalidTypeValue, memReq.Key, memReq.Value))
+	}
+
+	memReqVal, ok := memReqInterfaceVal.(float64)
+	if !ok {
+		return errors.New(fmt.Sprintf(bean.InvalidTypeValue, memReq.Key, memReq.Value))
+	}
+
+	if !validLimReq(memLimitVal, memLimitUnit.ConversionFactor, memReqVal, memReqUnit.ConversionFactor) {
+		return errors.New(bean.MEMLimReqErrorCompErr)
+	}
+	return nil
 }

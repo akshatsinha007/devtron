@@ -19,6 +19,8 @@ package units
 import (
 	"fmt"
 	util2 "github.com/devtron-labs/devtron/internal/util"
+	"github.com/devtron-labs/devtron/pkg/infraConfig/bean"
+	bean2 "github.com/devtron-labs/devtron/pkg/infraConfig/units/bean"
 	"github.com/devtron-labs/devtron/util"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -28,22 +30,9 @@ import (
 	"strings"
 )
 
-type UnitStr interface {
-	CPUUnitStr | MemoryUnitStr | TimeUnitStr
-}
-
-// Unit represents unitType of a configuration
-type Unit struct {
-	// Name is unitType name
-	Name string `json:"name"`
-	// ConversionFactor is used to convert this unitType to the base unitType
-	// if ConversionFactor is 1, then this is the base unitType
-	ConversionFactor float64 `json:"conversionFactor"`
-}
-
 type UnitStrService interface {
-	GetUnitSuffix() UnitType
-	GetUnit() (Unit, bool)
+	GetUnitSuffix() bean2.UnitType
+	GetUnit() (bean.Unit, bool)
 	String() string
 }
 
@@ -56,8 +45,9 @@ const (
 )
 
 type UnitService interface {
-	GetAllUnits() map[string]Unit
-	ParseValAndUnit(val string) (*ParsedValue, error)
+	GetAllUnits() map[string]bean.Unit
+	ParseValAndUnit(val string) (*bean2.ParsedValue, error)
+	Validate(profileBean, defaultProfile *bean.ProfileBeanDto) error
 }
 
 func NewUnitService(propertyType PropertyType, logger *zap.SugaredLogger) (UnitService, error) {
@@ -74,47 +64,10 @@ func NewUnitService(propertyType PropertyType, logger *zap.SugaredLogger) (UnitS
 	}
 }
 
-type ParsedValue struct {
-	valueFloat  float64
-	valueString string
-	unitType    string
-}
-
-func NewParsedValue() *ParsedValue {
-	return &ParsedValue{}
-}
-
-func (p *ParsedValue) WithValueFloat(value float64) *ParsedValue {
-	p.valueFloat = value
-	return p
-}
-
-func (p *ParsedValue) WithValueString(value string) *ParsedValue {
-	p.valueString = value
-	return p
-}
-
-func (p *ParsedValue) WithUnit(unit string) *ParsedValue {
-	p.unitType = unit
-	return p
-}
-
-func (p *ParsedValue) GetValueFloat() float64 {
-	return p.valueFloat
-}
-
-func (p *ParsedValue) GetValueString() string {
-	return p.valueString
-}
-
-func (p *ParsedValue) GetUnitType() string {
-	return p.unitType
-}
-
 // ParseCPUorMemoryValue parses the quantity that has number values string and returns the value and unitType
 // returns error if parsing fails
-func ParseCPUorMemoryValue(quantity string) (*ParsedValue, error) {
-	parsedValue := NewParsedValue()
+func ParseCPUorMemoryValue(quantity string) (*bean2.ParsedValue, error) {
+	parsedValue := bean2.NewParsedValue()
 	positive, _, num, denom, suffix, err := parseQuantityString(quantity)
 	if err != nil {
 		return parsedValue, err
@@ -131,7 +84,9 @@ func ParseCPUorMemoryValue(quantity string) (*ParsedValue, error) {
 
 	// currently we are not supporting exponential values upto 2 decimals
 	val = util.TruncateFloat(val, 2)
-	return parsedValue.WithValueFloat(val).WithUnit(suffix), err
+	return parsedValue.
+		WithValueString(strconv.FormatFloat(val, 'f', -1, 64)).
+		WithUnit(suffix), err
 }
 
 // parseQuantityString is a fast scanner for quantity values.

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package units
+package bean
 
 // memory units
 // Ei, Pi, Ti, Gi, Mi, Ki
@@ -101,4 +101,31 @@ func (unitType UnitType) GetTimeUnitStr() TimeUnitStr {
 	default:
 		return SecondStr
 	}
+}
+
+type ParsedValue struct {
+	valueString string
+	unitType    string
+}
+
+func NewParsedValue() *ParsedValue {
+	return &ParsedValue{}
+}
+
+func (p *ParsedValue) WithValueString(value string) *ParsedValue {
+	p.valueString = value
+	return p
+}
+
+func (p *ParsedValue) WithUnit(unit string) *ParsedValue {
+	p.unitType = unit
+	return p
+}
+
+func (p *ParsedValue) GetValueString() string {
+	return p.valueString
+}
+
+func (p *ParsedValue) GetUnitType() string {
+	return p.unitType
 }

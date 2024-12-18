@@ -17,71 +17,103 @@
 package units
 
 import (
+	"errors"
+	"fmt"
+	"github.com/devtron-labs/devtron/pkg/infraConfig/adapter"
+	"github.com/devtron-labs/devtron/pkg/infraConfig/bean"
+	bean2 "github.com/devtron-labs/devtron/pkg/infraConfig/units/bean"
 	"go.uber.org/zap"
 )
 
 type CPUUnitFactory struct {
 	logger   *zap.SugaredLogger
-	cpuUnits map[CPUUnitStr]Unit
+	cpuUnits map[bean2.CPUUnitStr]bean.Unit
 }
 
 func NewCPUUnitFactory(logger *zap.SugaredLogger) *CPUUnitFactory {
 	return &CPUUnitFactory{
 		logger:   logger,
-		cpuUnits: getCPUUnit(),
+		cpuUnits: bean2.GetCPUUnit(),
 	}
 }
 
-func (c *CPUUnitFactory) GetAllUnits() map[string]Unit {
+func (c *CPUUnitFactory) GetAllUnits() map[string]bean.Unit {
 	cpuUnits := c.cpuUnits
-	units := make(map[string]Unit)
+	units := make(map[string]bean.Unit)
 	for key, value := range cpuUnits {
 		units[string(key)] = value
 	}
 	return units
 }
 
-func (c *CPUUnitFactory) ParseValAndUnit(val string) (*ParsedValue, error) {
+func (c *CPUUnitFactory) ParseValAndUnit(val string) (*bean2.ParsedValue, error) {
 	return ParseCPUorMemoryValue(val)
 }
 
-type CPUUnitStr string
+func (c *CPUUnitFactory) Validate(profileBean, defaultProfile *bean.ProfileBeanDto) error {
+	// currently validating cpu and memory limits and reqs only
+	var (
+		cpuLimit *bean.ConfigurationBean
+		cpuReq   *bean.ConfigurationBean
+	)
 
-const (
-	CORE  CPUUnitStr = "Core"
-	MILLI CPUUnitStr = "m"
-)
-
-func (cpuUnitStr CPUUnitStr) GetUnitSuffix() UnitType {
-	switch cpuUnitStr {
-	case CORE:
-		return Core
-	case MILLI:
-		return Milli
-	default:
-		return Core
+	for _, platformConfigurations := range profileBean.Configurations {
+		for _, configuration := range platformConfigurations {
+			// get cpu limit and req
+			switch configuration.Key {
+			case bean.CPU_LIMIT:
+				cpuLimit = configuration
+			case bean.CPU_REQUEST:
+				cpuReq = configuration
+			}
+		}
 	}
-}
-
-func (cpuUnitStr CPUUnitStr) GetUnit() (Unit, bool) {
-	cpuUnits := getCPUUnit()
-	cpuUnit, exists := cpuUnits[cpuUnitStr]
-	return cpuUnit, exists
-}
-
-func (cpuUnitStr CPUUnitStr) String() string {
-	return string(cpuUnitStr)
-}
-
-func getCPUUnit() map[CPUUnitStr]Unit {
-	return map[CPUUnitStr]Unit{
-		MILLI: {
-			Name:             string(MILLI),
-			ConversionFactor: 1e-3,
-		},
-		CORE: {
-			Name:             string(CORE),
-			ConversionFactor: 1,
-		},
+	// validate cpu
+	err := validateCPU(cpuLimit, cpuReq)
+	if err != nil {
+		return err
 	}
+	return nil
+}
+
+func validateCPU(cpuLimit, cpuReq *bean.ConfigurationBean) error {
+	cpuLimitUnitSuffix := bean2.CPUUnitStr(cpuLimit.Unit)
+	cpuReqUnitSuffix := bean2.CPUUnitStr(cpuReq.Unit)
+	cpuLimitUnit, ok := cpuLimitUnitSuffix.GetUnit()
+	if !ok {
+		return errors.New(fmt.Sprintf(bean.InvalidUnit, cpuLimit.Unit, cpuLimit.Key))
+	}
+	cpuReqUnit, ok := cpuReqUnitSuffix.GetUnit()
+	if !ok {
+		return errors.New(fmt.Sprintf(bean.InvalidUnit, cpuReq.Unit, cpuReq.Key))
+	}
+
+	cpuLimitInterfaceVal, err := adapter.GetTypedValue(cpuLimit.Key, cpuLimit.Value)
+	if err != nil {
+		return errors.New(fmt.Sprintf(bean.InvalidTypeValue, cpuLimit.Key, cpuLimit.Value))
+	}
+	cpuLimitVal, ok := cpuLimitInterfaceVal.(float64)
+	if !ok {
+		return errors.New(fmt.Sprintf(bean.InvalidTypeValue, cpuLimit.Key, cpuLimit.Value))
+	}
+
+	cpuReqInterfaceVal, err := adapter.GetTypedValue(cpuReq.Key, cpuReq.Value)
+	if err != nil {
+		return errors.New(fmt.Sprintf(bean.InvalidTypeValue, cpuReq.Key, cpuReq.Value))
+	}
+	cpuReqVal, ok := cpuReqInterfaceVal.(float64)
+	if !ok {
+		return errors.New(fmt.Sprintf(bean.InvalidTypeValue, cpuReq.Key, cpuReq.Value))
+	}
+	if !validLimReq(cpuLimitVal, cpuLimitUnit.ConversionFactor, cpuReqVal, cpuReqUnit.ConversionFactor) {
+		return errors.New(bean.CPULimReqErrorCompErr)
+	}
+	return nil
+}
+
+func validLimReq(lim, limFactor, req, reqFactor float64) bool {
+	// this condition should be true for the valid case => (lim/req)*(lf/rf) >= 1
+	limitToReqRatio := lim / req
+	convFactor := limFactor / reqFactor
+	return limitToReqRatio*convFactor >= 1
 }

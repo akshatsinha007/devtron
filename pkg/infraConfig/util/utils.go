@@ -20,27 +20,23 @@ import (
 	"errors"
 	"fmt"
 	"github.com/devtron-labs/devtron/pkg/infraConfig/bean"
-	"github.com/devtron-labs/devtron/pkg/infraConfig/units"
-	util2 "github.com/devtron-labs/devtron/util"
-	"math"
-	"reflect"
-	"strconv"
+	bean2 "github.com/devtron-labs/devtron/pkg/infraConfig/units/bean"
 	"strings"
 )
 
 // GetUnitSuffix loosely typed method to get the unit suffix using the unitKey type
-func GetUnitSuffix(unitKey bean.ConfigKeyStr, unitStr string) units.UnitType {
+func GetUnitSuffix(unitKey bean.ConfigKeyStr, unitStr string) bean2.UnitType {
 	switch unitKey {
 	case bean.CPU_LIMIT, bean.CPU_REQUEST:
-		return units.CPUUnitStr(unitStr).GetUnitSuffix()
+		return bean2.CPUUnitStr(unitStr).GetUnitSuffix()
 	case bean.MEMORY_LIMIT, bean.MEMORY_REQUEST:
-		return units.MemoryUnitStr(unitStr).GetUnitSuffix()
+		return bean2.MemoryUnitStr(unitStr).GetUnitSuffix()
 	}
-	return units.TimeUnitStr(unitStr).GetUnitSuffix()
+	return bean2.TimeUnitStr(unitStr).GetUnitSuffix()
 }
 
 // GetUnitSuffixStr loosely typed method to get the unit suffix using the unitKey type
-func GetUnitSuffixStr(unitKey bean.ConfigKey, unit units.UnitType) string {
+func GetUnitSuffixStr(unitKey bean.ConfigKey, unit bean2.UnitType) string {
 	switch unitKey {
 	case bean.CPULimitKey, bean.CPURequestKey:
 		return string(unit.GetCPUUnitStr())
@@ -125,41 +121,6 @@ func validateConfigItems(propertyConfigs []*bean.ConfigurationBean, defaultKeyMa
 		return fmt.Errorf("validation errors: %s", strings.Join(validationErrors, "; "))
 	}
 	return nil
-}
-
-func GetTypedValue(configKey bean.ConfigKeyStr, value interface{}) (interface{}, error) {
-	switch configKey {
-	case bean.CPU_LIMIT, bean.CPU_REQUEST, bean.MEMORY_LIMIT, bean.MEMORY_REQUEST:
-		//value is float64 or convertible to it
-		switch v := value.(type) {
-		case string:
-			valueFloat, err := strconv.ParseFloat(v, 64)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse string to float for %s: %w", configKey, err)
-			}
-			return util2.TruncateFloat(valueFloat, 2), nil
-		case float64:
-			return util2.TruncateFloat(v, 2), nil
-		default:
-			return nil, fmt.Errorf("unsupported type for %s: %v", configKey, reflect.TypeOf(value))
-		}
-	case bean.TIME_OUT:
-		switch v := value.(type) {
-		case string:
-			valueFloat, err := strconv.ParseFloat(v, 64)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse string to float for %s: %w", configKey, err)
-			}
-			return math.Min(math.Floor(valueFloat), math.MaxInt64), nil
-		case float64:
-			return math.Min(math.Floor(v), math.MaxInt64), nil
-		default:
-			return nil, fmt.Errorf("unsupported type for %s: %v", configKey, reflect.TypeOf(value))
-		}
-	// Default case
-	default:
-		return nil, fmt.Errorf("unsupported config key: %s", configKey)
-	}
 }
 
 func IsValidProfileNameRequested(profileName, payloadProfileName string) bool {

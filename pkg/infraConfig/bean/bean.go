@@ -17,7 +17,6 @@
 package bean
 
 import (
-	"github.com/devtron-labs/devtron/pkg/infraConfig/units"
 	"time"
 )
 
@@ -59,14 +58,14 @@ type ConfigurationBeanV0 struct {
 }
 
 type InfraConfigMetaData struct {
-	DefaultConfigurations map[string][]*ConfigurationBean        `json:"defaultConfigurations"`
-	ConfigurationUnits    map[ConfigKeyStr]map[string]units.Unit `json:"configurationUnits"`
+	DefaultConfigurations map[string][]*ConfigurationBean  `json:"defaultConfigurations"`
+	ConfigurationUnits    map[ConfigKeyStr]map[string]Unit `json:"configurationUnits"`
 }
 
 // Deprecated
 type InfraConfigMetaDataV0 struct {
-	DefaultConfigurations []ConfigurationBeanV0                  `json:"defaultConfigurations"`
-	ConfigurationUnits    map[ConfigKeyStr]map[string]units.Unit `json:"configurationUnits"`
+	DefaultConfigurations []ConfigurationBeanV0            `json:"defaultConfigurations"`
+	ConfigurationUnits    map[ConfigKeyStr]map[string]Unit `json:"configurationUnits"`
 }
 
 type ProfileResponse struct {
@@ -141,4 +140,13 @@ func (infraConfig InfraConfig) GetCiDefaultTimeout() int64 {
 
 func (infraConfig *InfraConfig) SetCiDefaultTimeout(timeout int64) {
 	infraConfig.CiDefaultTimeout = timeout
+}
+
+// Unit represents unitType of a configuration
+type Unit struct {
+	// Name is unitType name
+	Name string `json:"name"`
+	// ConversionFactor is used to convert this unitType to the base unitType
+	// if ConversionFactor is 1, then this is the base unitType
+	ConversionFactor float64 `json:"conversionFactor"`
 }

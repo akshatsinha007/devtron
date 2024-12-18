@@ -25,6 +25,7 @@ import (
 	"github.com/devtron-labs/devtron/pkg/infraConfig/bean"
 	"github.com/devtron-labs/devtron/pkg/infraConfig/repository"
 	"github.com/devtron-labs/devtron/pkg/infraConfig/units"
+	bean2 "github.com/devtron-labs/devtron/pkg/infraConfig/units/bean"
 	util2 "github.com/devtron-labs/devtron/pkg/infraConfig/util"
 	"github.com/devtron-labs/devtron/pkg/sql"
 	"github.com/go-pg/pg"
@@ -38,7 +39,7 @@ import (
 type InfraConfigService interface {
 
 	// GetConfigurationUnits fetches all the units for the configurations.
-	GetConfigurationUnits() (map[bean.ConfigKeyStr]map[string]units.Unit, error)
+	GetConfigurationUnits() (map[bean.ConfigKeyStr]map[string]bean.Unit, error)
 	// GetProfileByName fetches the profile and its configurations matching the given profileName.
 	GetProfileByName(name string) (*bean.ProfileBeanDto, error)
 	// UpdateProfile updates the profile and its configurations matching the given profileName.
@@ -53,9 +54,7 @@ type InfraConfigServiceImpl struct {
 	infraProfileRepo repository.InfraConfigRepository
 	appService       app.AppService
 	infraConfig      *bean.InfraConfig
-	cpuUnitFactory   units.UnitService
-	memUnitFactory   units.UnitService
-	timeUnitFactory  units.UnitService
+	unitFactoryMap   map[units.PropertyType]units.UnitService
 }
 
 func NewInfraConfigServiceImpl(logger *zap.SugaredLogger,
@@ -81,14 +80,16 @@ func NewInfraConfigServiceImpl(logger *zap.SugaredLogger,
 		logger.Errorw("error in creating time unit factory", "error", err)
 		return nil, err
 	}
+	unitFactoryMap := make(map[units.PropertyType]units.UnitService)
+	unitFactoryMap[units.CPU] = cpuUnitFactory
+	unitFactoryMap[units.MEMORY] = memUnitFactory
+	unitFactoryMap[units.TIME] = timeUnitFactory
 	infraProfileService := &InfraConfigServiceImpl{
 		logger:           logger,
 		infraProfileRepo: infraProfileRepo,
 		appService:       appService,
 		infraConfig:      infraConfiguration,
-		cpuUnitFactory:   cpuUnitFactory,
-		memUnitFactory:   memUnitFactory,
-		timeUnitFactory:  timeUnitFactory,
+		unitFactoryMap:   unitFactoryMap,
 	}
 	err = infraProfileService.loadDefaultProfile()
 	return infraProfileService, err
@@ -370,7 +371,7 @@ func (impl *InfraConfigServiceImpl) getResolvedValue(configurationBean bean.Conf
 	if configurationBean.Key == util2.GetConfigKeyStr(bean.TimeOutKey) {
 		// timeout, _ := strconv.ParseFloat(configurationBean.Value.(float64), 64)
 		//  if a user ever gives the timeout in float, after conversion to int64 it will be rounded off
-		timeUnit, ok := units.TimeUnitStr(configurationBean.Unit).GetUnit()
+		timeUnit, ok := bean2.TimeUnitStr(configurationBean.Unit).GetUnit()
 		if !ok {
 			impl.logger.Errorw("error in getting time unit", "unit", configurationBean.Unit)
 			errMsg := fmt.Sprintf(bean.InvalidUnit, configurationBean.Unit, configurationBean.Key)
@@ -378,17 +379,17 @@ func (impl *InfraConfigServiceImpl) getResolvedValue(configurationBean bean.Conf
 		}
 		return int64(timeout * timeUnit.ConversionFactor), nil
 	}
-	if configurationBean.Unit == units.CORE.String() || configurationBean.Unit == units.BYTE.String() {
+	if configurationBean.Unit == bean2.CORE.String() || configurationBean.Unit == bean2.BYTE.String() {
 		return fmt.Sprintf("%v", configurationBean.Value.(float64)), nil
 	}
 	return fmt.Sprintf("%v%v", timeout, configurationBean.Unit), nil
 }
 
-func (impl *InfraConfigServiceImpl) GetConfigurationUnits() (map[bean.ConfigKeyStr]map[string]units.Unit, error) {
-	configurationUnits := make(map[bean.ConfigKeyStr]map[string]units.Unit)
-	cpuUnits := impl.cpuUnitFactory.GetAllUnits()
-	memUnits := impl.memUnitFactory.GetAllUnits()
-	timeUnits := impl.timeUnitFactory.GetAllUnits()
+func (impl *InfraConfigServiceImpl) GetConfigurationUnits() (map[bean.ConfigKeyStr]map[string]bean.Unit, error) {
+	configurationUnits := make(map[bean.ConfigKeyStr]map[string]bean.Unit)
+	cpuUnits := impl.unitFactoryMap[units.CPU].GetAllUnits()
+	memUnits := impl.unitFactoryMap[units.MEMORY].GetAllUnits()
+	timeUnits := impl.unitFactoryMap[units.TIME].GetAllUnits()
 
 	configurationUnits[bean.CPU_REQUEST] = cpuUnits
 	configurationUnits[bean.CPU_LIMIT] = cpuUnits
@@ -416,7 +417,7 @@ func (impl *InfraConfigServiceImpl) validate(profileToUpdate *bean.ProfileBeanDt
 }
 
 func (impl *InfraConfigServiceImpl) loadInfraConfigInEntities(infraConfig *bean.InfraConfig) ([]*repository.InfraProfileConfigurationEntity, error) {
-	cpuLimitParsedValue, err := impl.cpuUnitFactory.ParseValAndUnit(infraConfig.CiLimitCpu)
+	cpuLimitParsedValue, err := impl.unitFactoryMap[units.CPU].ParseValAndUnit(infraConfig.CiLimitCpu)
 	if err != nil {
 		return nil, err
 	}
@@ -424,15 +425,7 @@ func (impl *InfraConfigServiceImpl) loadInfraConfigInEntities(infraConfig *bean.
 	if err != nil {
 		return nil, err
 	}
-	memLimitParsedValue, err := impl.memUnitFactory.ParseValAndUnit(infraConfig.CiLimitMem)
-	if err != nil {
-		return nil, err
-	}
-	memLimit, err := adapter.LoadCiLimitMem(memLimitParsedValue)
-	if err != nil {
-		return nil, err
-	}
-	cpuReqParsedValue, err := impl.cpuUnitFactory.ParseValAndUnit(infraConfig.CiReqCpu)
+	cpuReqParsedValue, err := impl.unitFactoryMap[units.CPU].ParseValAndUnit(infraConfig.CiReqCpu)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +433,15 @@ func (impl *InfraConfigServiceImpl) loadInfraConfigInEntities(infraConfig *bean.
 	if err != nil {
 		return nil, err
 	}
-	memReqParsedValue, err := impl.memUnitFactory.ParseValAndUnit(infraConfig.CiReqMem)
+	memLimitParsedValue, err := impl.unitFactoryMap[units.MEMORY].ParseValAndUnit(infraConfig.CiLimitMem)
+	if err != nil {
+		return nil, err
+	}
+	memLimit, err := adapter.LoadCiLimitMem(memLimitParsedValue)
+	if err != nil {
+		return nil, err
+	}
+	memReqParsedValue, err := impl.unitFactoryMap[units.MEMORY].ParseValAndUnit(infraConfig.CiReqMem)
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +449,7 @@ func (impl *InfraConfigServiceImpl) loadInfraConfigInEntities(infraConfig *bean.
 	if err != nil {
 		return nil, err
 	}
-	timeoutParsedValue, err := impl.timeUnitFactory.ParseValAndUnit(strconv.FormatInt(infraConfig.CiDefaultTimeout, 10))
+	timeoutParsedValue, err := impl.unitFactoryMap[units.TIME].ParseValAndUnit(strconv.FormatInt(infraConfig.CiDefaultTimeout, 10))
 	if err != nil {
 		return nil, err
 	}
