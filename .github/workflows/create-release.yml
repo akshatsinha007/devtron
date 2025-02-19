@@ -95,7 +95,7 @@ jobs:
             # Commit and push changes
             git add .
             git commit -m "Updated release-notes files"
-            git push -f https://$GIT_USERNAME:$GITHUB_TOKENS@github.com/$GIT_REPO RELEASE_BRANCH
+            git push -f https://$GIT_USERNAME:$GITHUB_TOKENS@github.com/$GIT_REPO $RELEASE_BRANCH
           fi
   # This workflow contains a single job called "create-release"
   create-release:
