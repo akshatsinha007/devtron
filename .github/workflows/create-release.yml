@@ -8,12 +8,95 @@ on:
   workflow_dispatch:
     inputs:
       RELEASE_TYPE:
-        description: 'Release Type'
+        description: 'Release type (major/minor/patch/beta)'
         required: true
-        default: 'minor'
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+          - beta
+      NEXT_RELEASE_VERSION:
+        description: 'Next release version (e.g., v1.2.3)'
+        required: true
+        type: string
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+
+  create-release-tag:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
+
+    env:
+      GITHUB_TOKENS: ${{ secrets.GH_SYSTEMSDT_TOKEN }}
+      GIT_CONFIG_EMAIL: ${{ secrets.GH_SYSTEMSDT_EMAIL }}
+      GIT_CONFIG_NAME: ${{ secrets.GH_SYSTEMSDT_USERNAME }}
+      GIT_USERNAME: ${{ secrets.GH_SYSTEMSDT_USERNAME }}
+      GIT_REPO: ${{ github.repository }}
+      RELEASE_TYPE: ${{ inputs.RELEASE_TYPE }}
+      NEXT_RELEASE_VERSION: ${{ inputs.NEXT_RELEASE_VERSION }}
+      REPO: ${{ github.repository }}
+      RELEASE_BRANCH: ${{ inputs.RELEASE_BRANCH }}
+
+    steps:
+      - name: Install dependencies
+        run: |
+          apk update && apk add --no-cache git github-cli
+
+      - name: Configure Git
+        run: |
+          echo $GITHUB_TOKENS > tokens.txt
+          gh auth login --with-token < tokens.txt
+          git config --global user.email "$GIT_CONFIG_EMAIL"
+          git config --global user.name "$GIT_CONFIG_NAME"
+
+      - name: Clone repository and create tag
+        run: |
+          mkdir preci && cd preci
+          gh repo clone "$REPO"
+          cd $(basename "$REPO")
+          git checkout RELEASE_BRANCH
+          git pull origin RELEASE_BRANCH
+          
+          # Create and push tag
+          git tag $NEXT_RELEASE_VERSION
+          git push -f https://$GIT_USERNAME:$GITHUB_TOKENS@github.com/$GIT_REPO $NEXT_RELEASE_VERSION
+
+      - name: Update release notes
+        run: |
+          cd preci/$(basename "$REPO")
+          
+          if [[ "$RELEASE_TYPE" == "beta" ]]; then
+            # For beta releases, just commit and push all changes
+            git add .
+            git commit -m "Updated release-notes files"
+            git push -f https://$GIT_USERNAME:$GITHUB_TOKENS@github.com/$GIT_REPO --all
+          else
+            # For major/minor/patch releases, perform full release notes update
+            echo -e "## $NEXT_RELEASE_VERSION\n" > tmp
+            if [ -f beta-releasenotes.md ]; then
+              cat beta-releasenotes.md >> tmp
+              echo -e "\n" >> tmp
+            fi
+            if [ -f releasenotes.md ]; then
+              cat releasenotes.md >> tmp
+            fi
+            mv tmp releasenotes.md
+            
+            # Remove beta release notes
+            rm -f beta-releasenotes.md
+            
+            # Create changelog file
+            mkdir -p CHANGELOG
+            cat releasenotes.md > CHANGELOG/release-notes-${NEXT_RELEASE_VERSION}.md
+            
+            # Commit and push changes
+            git add .
+            git commit -m "Updated release-notes files"
+            git push -f https://$GIT_USERNAME:$GITHUB_TOKENS@github.com/$GIT_REPO RELEASE_BRANCH
+          fi
   # This workflow contains a single job called "create-release"
   create-release:
     # The type of runner that the job will run on
