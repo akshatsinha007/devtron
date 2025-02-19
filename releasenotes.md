@@ -1,5 +1,7 @@
 ## v1.3.0
 
+## v1.3.0
+
 ## Bugs
 - fix: devtron apps deployed via helm showing in helm apps list (#6397)
 - fix: when a helm app is managed by argocd then skip argo app update when same name ext helm app is installed (#6389)
