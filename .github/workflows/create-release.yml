@@ -37,7 +37,7 @@ jobs:
       GIT_REPO: ${{ github.repository }}
       RELEASE_TYPE: ${{ inputs.RELEASE_TYPE }}
       NEXT_RELEASE_VERSION: ${{ inputs.NEXT_RELEASE_VERSION }}
-      REPO: ${{ github.repository }}
+      REPO: https://github.com/akshatsinha007/devtron
       RELEASE_BRANCH: main
 
     steps:
