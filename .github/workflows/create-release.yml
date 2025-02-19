@@ -63,7 +63,6 @@ jobs:
             echo "Not creating release due to beta"
         fi
       env:
-        RELEASE_TYPE:
         GH_TOKEN: ${{ secrets.GH_SYSTEMSDT_TOKEN }}
         RELEASE_BRANCH: ${{ secrets.RELEASE_BRANCH }}
         GIT_CONFIG_NAME: ${{ vars.GH_SYSTEMSDT_USERNAME }}
