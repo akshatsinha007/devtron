@@ -38,7 +38,7 @@ jobs:
       RELEASE_TYPE: ${{ inputs.RELEASE_TYPE }}
       NEXT_RELEASE_VERSION: ${{ inputs.NEXT_RELEASE_VERSION }}
       REPO: https://github.com/akshatsinha007/devtron
-      RELEASE_BRANCH: main
+      RELEASE_BRANCH: "main"
 
     steps:
       - name: Install dependencies
@@ -57,8 +57,8 @@ jobs:
           mkdir preci && cd preci
           gh repo clone "$REPO"
           cd $(basename "$REPO")
-          git checkout RELEASE_BRANCH
-          git pull origin RELEASE_BRANCH
+          git checkout $RELEASE_BRANCH
+          git pull origin $RELEASE_BRANCH
           
           # Create and push tag
           git tag $NEXT_RELEASE_VERSION
