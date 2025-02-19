@@ -5,8 +5,12 @@ name: Create Release
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or on push in charts directory of main branch.
 on:
-
   workflow_dispatch:
+    inputs:
+      RELEASE_TYPE:
+        description: 'Release Type'
+        required: true
+        default: 'minor'
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -20,14 +24,12 @@ jobs:
     # Runs series of commands to create a release
     - name: create-release
       run: |
-        RELEASE_FILE_CONTENTS=$(curl -L -s  "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${RELEASE_BRANCH}/manifests/release.txt" )
-        RELEASE_TYPE=$(echo $RELEASE_FILE_CONTENTS | awk '{print $1}')
         FILE_NAME=${FILE_NAME:=releasenotes.md}
         echo $RELEASE_TYPE
         echo $GITHUB_REPOSITORY
         gh repo clone $GITHUB_REPOSITORY
         cd devtron
-        if [[ "$RELEASE_TYPE" == "stable" ]]
+        if [[ "$RELEASE_TYPE" == "major" || "$RELEASE_TYPE" == "minor" || "$RELEASE_TYPE" == "patch" ]]
           then
             tag=$(git tag --sort=committerdate | tail -1)
             echo $tag
@@ -43,7 +45,6 @@ jobs:
             echo "## Enhancements" >> beta-releasenotes.md
             echo "## Documentation" >> beta-releasenotes.md
             echo "## Others" >> beta-releasenotes.md
-            echo "beta -1 $tag" > manifests/release.txt
             git add .
             git commit -am "Updated release-notes files"
             git push -f https://${GIT_CONFIG_NAME}:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY} release-bot
@@ -62,16 +63,16 @@ jobs:
             echo "Not creating release due to beta"
         fi
       env:
+        RELEASE_TYPE:
         GH_TOKEN: ${{ secrets.GH_SYSTEMSDT_TOKEN }}
         RELEASE_BRANCH: ${{ secrets.RELEASE_BRANCH }}
         GIT_CONFIG_NAME: ${{ vars.GH_SYSTEMSDT_USERNAME }}
         GIT_CONFIG_EMAIL: ${{ secrets.GH_SYSTEMSDT_EMAIL }}
+        RELEASE_TYPE: ${{ github.event.inputs.RELEASE_TYPE }}
     # Send notification on discord
     - name: discord-notify
       run: |
-        RELEASE_FILE_CONTENTS=$(curl -L -s  "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${RELEASE_BRANCH}/manifests/release.txt" )
-        RELEASE_TYPE=$(echo $RELEASE_FILE_CONTENTS | awk '{print $1}')
-        if [[ "$RELEASE_TYPE" == "stable" ]]
+        if [[ "$RELEASE_TYPE" == "major" || "$RELEASE_TYPE" == "minor" || "$RELEASE_TYPE" == "patch" ]]
         then
         sudo apt install python3 python3-pip -y
         pip install discord-webhook
@@ -86,3 +87,4 @@ jobs:
         fi
       env:
         RELEASE_BRANCH: ${{ secrets.RELEASE_BRANCH }}
+        RELEASE_TYPE: ${{ github.event.inputs.RELEASE_TYPE }}
