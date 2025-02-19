@@ -33,3 +33,4 @@ jobs:
         working-dir: ${{ secrets.WORKING_DIR }}
         RELEASE_BRANCH: "main"
         RELEASE_TYPE: ${{ github.event.inputs.RELEASE_TYPE }}
+        RELEASE_TAG: ${{ github.event.inputs.RELEASE_TAG }}
