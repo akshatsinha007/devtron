@@ -27,6 +27,8 @@ jobs:
         FILE_NAME=${FILE_NAME:=releasenotes.md}
         echo $RELEASE_TYPE
         echo $GITHUB_REPOSITORY
+        echo $RELEASE_BRANCH
+
         gh repo clone $GITHUB_REPOSITORY
         cd devtron
         if [[ "$RELEASE_TYPE" == "major" || "$RELEASE_TYPE" == "minor" || "$RELEASE_TYPE" == "patch" ]]
