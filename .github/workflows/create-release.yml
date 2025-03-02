@@ -1,4 +1,4 @@
-# This workflow is used to create a github release from last tag pushed
+# This workflow is used to create tag and Release for OSS
 
 name: Create Release
 
@@ -16,10 +16,6 @@ on:
           - minor
           - patch
           - beta
-      NEXT_RELEASE_VERSION:
-        description: 'Next release version (e.g., v1.2.3)'
-        required: true
-        type: string
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -36,7 +32,6 @@ jobs:
       GIT_USERNAME: ${{ secrets.GH_SYSTEMSDT_USERNAME }}
       GIT_REPO: ${{ github.repository }}
       RELEASE_TYPE: ${{ inputs.RELEASE_TYPE }}
-      NEXT_RELEASE_VERSION: ${{ inputs.NEXT_RELEASE_VERSION }}
       REPO: https://github.com/akshatsinha007/devtron
       RELEASE_BRANCH: "main"
 
@@ -59,7 +54,7 @@ jobs:
           cd $(basename "$REPO")
           git checkout $RELEASE_BRANCH
           git pull origin $RELEASE_BRANCH
-          
+          NEXT_RELEASE_VERSION=v$(curl -s https://raw.githubusercontent.com/devtron-labs/charts/refs/heads/main/charts/devtron/Chart.yaml | grep 'appVersion' | awk '{print $2}')
           # Create and push tag
           git tag $NEXT_RELEASE_VERSION
           git push -f https://$GIT_USERNAME:$GITHUB_TOKENS@github.com/$GIT_REPO $NEXT_RELEASE_VERSION
@@ -97,9 +92,8 @@ jobs:
             git commit -m "Updated release-notes files"
             git push -f https://$GIT_USERNAME:$GITHUB_TOKENS@github.com/$GIT_REPO $RELEASE_BRANCH
           fi
-  # This workflow contains a single job called "create-release"
+  
   create-release:
-    # The type of runner that the job will run on
     needs: create-release-tag
     runs-on: ubuntu-latest
 
@@ -127,9 +121,8 @@ jobs:
             git config --global user.name "$GIT_CONFIG_NAME"
             rm -f $FILE_NAME
             touch $FILE_NAME
-            echo "## Bugs" > beta-releasenotes.md
             echo "## Enhancements" >> beta-releasenotes.md
-            echo "## Documentation" >> beta-releasenotes.md
+            echo "## Bugs" > beta-releasenotes.md
             echo "## Others" >> beta-releasenotes.md
             git add .
             git commit -am "Updated release-notes files"
@@ -139,9 +132,8 @@ jobs:
             git checkout -b release-bot
             git config --global user.email "$GIT_CONFIG_EMAIL"
             git config --global user.name "$GIT_CONFIG_NAME"
-            echo "## Bugs" > beta-releasenotes.md
             echo "## Enhancements" >> beta-releasenotes.md
-            echo "## Documentation" >> beta-releasenotes.md
+            echo "## Bugs" > beta-releasenotes.md
             echo "## Others" >> beta-releasenotes.md
             git add .
             git commit -am "Created release-notes files"
