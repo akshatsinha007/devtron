@@ -38,7 +38,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          apk update && apk add --no-cache git github-cli
+          apk update && apk add --no-cache git github-cli curl
 
       - name: Configure Git
         run: |
@@ -54,7 +54,7 @@ jobs:
           cd $(basename "$REPO")
           git checkout $RELEASE_BRANCH
           git pull origin $RELEASE_BRANCH
-          NEXT_RELEASE_VERSION=v$(curl -s https://raw.githubusercontent.com/devtron-labs/charts/refs/heads/main/charts/devtron/Chart.yaml | grep 'appVersion' | awk '{print $2}')
+          NEXT_RELEASE_VERSION=v$(curl -s https://raw.githubusercontent.com/akshatsinha007/charts/refs/heads/main/charts/devtron/Chart.yaml | grep 'appVersion' | awk '{print $2}')
           # Create and push tag
           git tag $NEXT_RELEASE_VERSION
           git push -f https://$GIT_USERNAME:$GITHUB_TOKENS@github.com/$GIT_REPO $NEXT_RELEASE_VERSION
