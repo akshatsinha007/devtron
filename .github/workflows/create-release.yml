@@ -52,7 +52,12 @@ jobs:
       - name: Update release notes
         run: |
           cd preci/$(basename "$REPO")
-          
+          version=$(curl -s https://raw.githubusercontent.com/akshatsinha007/devtron/refs/heads/main/charts/devtron/Chart.yaml | grep "appVersion" | awk -F ': ' '{print $2}' )
+          if [[ "$version" == *"-rc"* ]]; then
+            RELEASE_TYPE="beta"
+          else
+            RELEASE_TYPE="minor"
+          fi
           if [[ "$RELEASE_TYPE" == "beta" ]]; then
             # For beta releases, just commit and push all changes
             git add .
@@ -96,7 +101,12 @@ jobs:
         echo $RELEASE_TYPE
         echo $GITHUB_REPOSITORY
         echo $RELEASE_BRANCH
-
+        version=$(curl -s https://raw.githubusercontent.com/akshatsinha007/devtron/refs/heads/main/charts/devtron/Chart.yaml | grep "appVersion" | awk -F ': ' '{print $2}' )
+        if [[ "$version" == *"-rc"* ]]; then
+          RELEASE_TYPE="beta"
+        else
+          RELEASE_TYPE="minor"
+        fi
         gh repo clone $GITHUB_REPOSITORY
         cd devtron
         if [[ "$RELEASE_TYPE" == "major" || "$RELEASE_TYPE" == "minor" || "$RELEASE_TYPE" == "patch" ]]
