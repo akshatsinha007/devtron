@@ -53,7 +53,7 @@ components:
       runAsUser: 1001
   ciRunner:
     registry: ""
-    image: "ci-runner:28f6c5c6-1-44"
+    image: "ci-runner:28f6c5c6-1-66"
   argocdDexServer:
     registry: ""
     image: "dex:v2.30.2"
