@@ -12,8 +12,6 @@ jobs:
 
   create-release-tag:
     runs-on: ubuntu-latest
-    container:
-      image: alpine:latest
 
     env:
       GITHUB_TOKENS: ${{ secrets.GH_SYSTEMSDT_TOKEN }}
