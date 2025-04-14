@@ -21,14 +21,10 @@ jobs:
       GIT_CONFIG_NAME: ${{ secrets.GH_SYSTEMSDT_USERNAME }}
       GIT_USERNAME: ${{ secrets.GH_SYSTEMSDT_USERNAME }}
       GIT_REPO: ${{ github.repository }}
-      RELEASE_TYPE: ${{ inputs.RELEASE_TYPE }}
       REPO: https://github.com/akshatsinha007/devtron
       RELEASE_BRANCH: "main"
 
     steps:
-      - name: Install dependencies
-        run: |
-          apk update && apk add --no-cache git github-cli curl
 
       - name: Configure Git
         run: |
@@ -36,6 +32,12 @@ jobs:
           gh auth login --with-token < tokens.txt
           git config --global user.email "$GIT_CONFIG_EMAIL"
           git config --global user.name "$GIT_CONFIG_NAME"
+          version=$(curl -s https://raw.githubusercontent.com/devtron-labs/devtron/refs/heads/main/charts/devtron/Chart.yaml | grep "appVersion" | awk -F ': ' '{print $2}' )
+          if [[ "$version" == *"-rc"* ]]; then
+            RELEASE_TYPE="beta"
+          else
+            RELEASE_TYPE="minor"
+          fi
 
       - name: Clone repository and create tag
         run: |
@@ -133,7 +135,6 @@ jobs:
         GH_TOKEN: ${{ secrets.GH_SYSTEMSDT_TOKEN }}
         GIT_CONFIG_NAME: ${{ vars.GH_SYSTEMSDT_USERNAME }}
         GIT_CONFIG_EMAIL: ${{ secrets.GH_SYSTEMSDT_EMAIL }}
-        RELEASE_TYPE: ${{ github.event.inputs.RELEASE_TYPE }}
     # Send notification on discord
     - name: discord-notify
       run: |
