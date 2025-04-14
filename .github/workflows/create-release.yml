@@ -6,16 +6,6 @@ name: Create Release
 # or on push in charts directory of main branch.
 on:
   workflow_dispatch:
-    inputs:
-      RELEASE_TYPE:
-        description: 'Release type (major/minor/patch/beta)'
-        required: true
-        type: choice
-        options:
-          - major
-          - minor
-          - patch
-          - beta
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
