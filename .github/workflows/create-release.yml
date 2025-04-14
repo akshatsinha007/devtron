@@ -30,12 +30,6 @@ jobs:
           gh auth login --with-token < tokens.txt
           git config --global user.email "$GIT_CONFIG_EMAIL"
           git config --global user.name "$GIT_CONFIG_NAME"
-          version=$(curl -s https://raw.githubusercontent.com/akshatsinha007/devtron/refs/heads/main/charts/devtron/Chart.yaml | grep "appVersion" | awk -F ': ' '{print $2}' )
-          if [[ "$version" == *"-rc"* ]]; then
-            RELEASE_TYPE="beta"
-          else
-            RELEASE_TYPE="minor"
-          fi
 
       - name: Clone repository and create tag
         run: |
@@ -48,45 +42,6 @@ jobs:
           # Create and push tag
           git tag $NEXT_RELEASE_VERSION
           git push -f https://$GIT_USERNAME:$GITHUB_TOKENS@github.com/$GIT_REPO $NEXT_RELEASE_VERSION
-
-      - name: Update release notes
-        run: |
-          cd preci/$(basename "$REPO")
-          version=$(curl -s https://raw.githubusercontent.com/akshatsinha007/devtron/refs/heads/main/charts/devtron/Chart.yaml | grep "appVersion" | awk -F ': ' '{print $2}' )
-          if [[ "$version" == *"-rc"* ]]; then
-            RELEASE_TYPE="beta"
-          else
-            RELEASE_TYPE="minor"
-          fi
-          if [[ "$RELEASE_TYPE" == "beta" ]]; then
-            # For beta releases, just commit and push all changes
-            git add .
-            git commit -m "Updated release-notes files"
-            git push -f https://$GIT_USERNAME:$GITHUB_TOKENS@github.com/$GIT_REPO --all
-          else
-            # For major/minor/patch releases, perform full release notes update
-            echo -e "## $NEXT_RELEASE_VERSION\n" > tmp
-            if [ -f beta-releasenotes.md ]; then
-              cat beta-releasenotes.md >> tmp
-              echo -e "\n" >> tmp
-            fi
-            if [ -f releasenotes.md ]; then
-              cat releasenotes.md >> tmp
-            fi
-            mv tmp releasenotes.md
-            
-            # Remove beta release notes
-            rm -f beta-releasenotes.md
-            
-            # Create changelog file
-            mkdir -p CHANGELOG
-            cat releasenotes.md > CHANGELOG/release-notes-${NEXT_RELEASE_VERSION}.md
-            
-            # Commit and push changes
-            git add .
-            git commit -m "Updated release-notes files"
-            git push -f https://$GIT_USERNAME:$GITHUB_TOKENS@github.com/$GIT_REPO $RELEASE_BRANCH
-          fi
   
   create-release:
     needs: create-release-tag
