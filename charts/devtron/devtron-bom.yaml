@@ -10,7 +10,7 @@ global:
   containerRegistry: "quay.io/devtron"
 extraManifests: []
 installer:
-  release: "v2.0.0"
+  release: "v3.0.0"
   registry: ""
   image: "inception"
   tag: "473deaa4-185-21582"
@@ -53,7 +53,7 @@ components:
       runAsUser: 1001
   ciRunner:
     registry: ""
-    image: "ci-runner:28f6c5c6-1-66"
+    image: "ci-runner:28f6c5c6-1-72"
   argocdDexServer:
     registry: ""
     image: "dex:v2.30.2"
