@@ -30,7 +30,7 @@ jobs:
           gh auth login --with-token < tokens.txt
           git config --global user.email "$GIT_CONFIG_EMAIL"
           git config --global user.name "$GIT_CONFIG_NAME"
-          version=$(curl -s https://raw.githubusercontent.com/devtron-labs/devtron/refs/heads/main/charts/devtron/Chart.yaml | grep "appVersion" | awk -F ': ' '{print $2}' )
+          version=$(curl -s https://raw.githubusercontent.com/akshatsinha007/devtron/refs/heads/main/charts/devtron/Chart.yaml | grep "appVersion" | awk -F ': ' '{print $2}' )
           if [[ "$version" == *"-rc"* ]]; then
             RELEASE_TYPE="beta"
           else
