@@ -161,4 +161,4 @@ jobs:
         echo "Not sending notification due to beta"
         fi
       env:
-        RELEASE_TYPE: ${{ github.event.inputs.RELEASE_TYPE }}
+        RELEASE_BRANCH: ${{ secrets.RELEASE_BRANCH }}
