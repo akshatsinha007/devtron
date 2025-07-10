@@ -57,7 +57,7 @@ tags:
     x-displayName: K8s Resource
   - name: Workflow Management
     x-displayName: Workflow Management
-paths:
+pa:
   /app/labels/list:
     get:
       summary: List Application Labels
