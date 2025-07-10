@@ -15,25 +15,10 @@ jobs:
        uses: actions/setup-node@v4
      - name: Install Redocly CLI
        run: npm install -g @redocly/cli
-     - name: Create Redocly config
-       run: |
-         cd specs/swagger
-         cat > redocly.yaml << 'EOF'
-         rules:
-           # Disable all warning-level rules
-           info-contact: off
-           info-license: off
-           tag-description: off
-           operation-description: off
-           operation-summary: off
-           operation-tag-defined: off
-           # Keep error-level rules (they remain as 'error' by default)
-         EOF
      - name: Lint OpenAPI specification
        run: |
          cd specs/swagger
          echo "Linting OpenAPI specification..."
          redocly lint openapi.yaml
-         echo "Linting passed! No critical errors found."
        env:
          GITHUB_TOKEN: ${{ secrets.GH_SYSTEMSDT_TOKEN }}
