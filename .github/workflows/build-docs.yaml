@@ -41,7 +41,7 @@ jobs:
       - name: Commit and push documentation
         run: |
           echo "Committing and pushing documentation..."
-          git add openapi.html
+          git add specs/swagger/openapi.html
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
