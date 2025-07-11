@@ -30,9 +30,9 @@ jobs:
       - name: Fetch latest commits from main
         run: |
           echo "Fetching latest commits from main..."
-          git fetch origin main
-          git checkout origin/main -- specs/swagger/
-          echo "Latest OpenAPI specs fetched from main!"
+          git fetch origin gh-pages
+          git checkout gh-pages
+          git pull origin gh-pages
       
       - name: Build OpenAPI documentation
         run: |
