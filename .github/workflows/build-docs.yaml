@@ -5,8 +5,11 @@ on:
       - main
     paths:
       - 'specs/swagger/**'
+permissions:
+  contents: write
+
 jobs:
-  lint-and-build:
+  build-docs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
