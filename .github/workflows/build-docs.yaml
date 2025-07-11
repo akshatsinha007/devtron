@@ -30,9 +30,8 @@ jobs:
       - name: Fetch latest commits from main
         run: |
           echo "Fetching latest commits from main..."
-          git fetch origin gh-pages
-          git checkout gh-pages
-          git pull origin gh-pages
+          git checkout -b gh-pages
+          git pull
       
       - name: Build OpenAPI documentation
         run: |
