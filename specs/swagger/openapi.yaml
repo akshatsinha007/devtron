@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   version: 1.0.0
-  title: API Specs Automation final
+  title: API Specs Automation final--lmaaoo
 servers:
   - url: http://localhost/orchestrator
     description: Local development server
